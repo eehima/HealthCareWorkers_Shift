@@ -1,0 +1,19 @@
+import express from "express";
+import * as authControllers from "../controllers/authControllers.js";
+import * as workersController from "../controllers/workersController.js";
+import { protect } from "../middleware/authmiddleware.js";
+
+const router = express.Router();
+
+// Worker registration and email verification
+router.post('/auth/register', authControllers.registerUser);
+router.get('/auth/verify-email', authControllers.verifyEmail);
+router.post('/auth/login', authControllers.loginUser);
+
+// Worker routes
+router.use(protect);
+router.get('/profile', workersController.getWorker);
+router.put('/profile', workersController.updateWorkerProfile);
+router.get('/all-workers', workersController.getAllWorkers);
+
+export default router;
