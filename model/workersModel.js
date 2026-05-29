@@ -26,6 +26,18 @@ const workerSchema = new mongoose.Schema({
         enum: ["nurse", "doctor", "therapist", "technician", "other"],
         required: true
     },
+
+    experienceYears: {
+        type: Number,
+        default:0
+    },
+
+    bio:{
+        type: String,
+        trim: true
+    },
+
+    
     credentials: {
         type: String,
         documentName: String,
@@ -39,6 +51,18 @@ const workerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+
+    verificationStatus:{
+        type: String,
+        enum: ["Pending", "Approved", "Rejected"],
+        default: "Pending"
+    },
+
+    certificationName: [{
+        documentName:String,
+        documentUrl: String,
+        expiryDate: Date
+    }],
 },{
     timestamps: true
 });

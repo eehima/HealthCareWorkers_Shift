@@ -25,7 +25,7 @@ export const getWorker = async (req, res) => {
 // Update worker profile
 export const updateWorkerProfile = async (req, res) => {
     try {
-        const { firstName, lastName, phoneNumber, specialty } = req.body;
+        const { firstName, lastName, phoneNumber, specialty, experienceYears, bio, verificationStatus, certificationName} = req.body;
         const updatedProfile = await workersModel.findOneAndUpdate(
             { user: req.user.id },
             { firstName, lastName, phoneNumber, specialty },
