@@ -1,11 +1,20 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import connectDB from './config/db.js';
-import workerRoutes from './routes/workerRoutes.js';
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import dns from "dns";
+import connectDB from "./config/db.js";
+import workerRoutes from "./routes/workerRoutes.js";
+import facilityRoutes from "./routes/facilityRoutes.js";
+import shiftRoutes from "./routes/shiftRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
 
 // Load environment variables
 dotenv.config();
+
+//dns fix for mongodb atlas issues
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 // Connect to the database
 connectDB();
 
@@ -16,14 +25,23 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.get('/', (req, res) => {
-    res.send('API is running...');
+app.get("/", (req, res) => {
+  res.send("API is running...");
 });
 // Worker routes
-app.use('/api/workers', workerRoutes);
+app.use("/api/workers", workerRoutes);
+
+// Facilty routes
+app.use("/api/facilities", facilityRoutes);
+
+//Shift Routes
+app.use("/api/shifts", shiftRoutes);
+
+//Application routes
+app.use("/api/applications", applicationRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
