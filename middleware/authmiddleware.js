@@ -1,25 +1,21 @@
 import jwt from 'jsonwebtoken';
-import User from '../model/userModel.js';
 
-// Authentication middleware
-export const protect = async (req, res, next) => {
-    let token;
-    console.log(`protect middleware: ${req.method} ${req.originalUrl}`);
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
+export const protect = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No token provided. Please log in.' });
     }
-    if (!token) {
-        return res.status(401).json({ message: 'Not authorized, no token' });
-    };
-    try {
+
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser) {
-        return res.status(401).json({ message: 'Not authorized, user not found' });
-    };
-    req.user = currentUser;
+
+    req.user = decoded;
+
     next();
-} catch (error) {
-    return res.status(401).json({ message: 'Not authorized, token failed' });
-}
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token. Please log in again.' });
+  }
 };

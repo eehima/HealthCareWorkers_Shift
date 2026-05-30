@@ -44,32 +44,33 @@ export const getWorker = async (req, res) => {
 // Update worker profile
 export const updateWorkerProfile = async (req, res) => {
     try {
+        const allowedFields = [
+            'firstName',
+            'lastName',
+            'phoneNumber',
+            'specialty',
+            'experienceYears',
+            'bio',
+            'address',
+            'certifications'
+        ];
 
-        const {
-            firstName,
-            lastName,
-            phoneNumber,
-            specialty,
-            experienceYears,
-            bio,
-            address,
-            certifications
-            
-        } = req.body;
+        const updates = {};
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        });
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({
+                message: 'No valid fields provided to update. Please send one of: ' + allowedFields.join(', ')
+            });
+        }
 
         const updatedProfile = await workersModel.findOneAndUpdate(
             { user: req.user.id },
-            {
-                firstName,
-                lastName,
-                phoneNumber,
-                specialty,
-                experienceYears,
-                bio,
-                address,
-                certifications
-                
-            },
+            updates,
             {
                 new: true,
                 runValidators: true
@@ -105,19 +106,21 @@ export const addAvailability = async (req, res) => {
             return res.status(400).json({ message: 'dayOfWeek and timeBlocks array required' });
         }
 
-        const worker = await workersModel.findOneAndUpdate(
-            { user: req.user.id },
-            { 
-                $addToSet: { 
-                    availability: { dayOfWeek, timeBlocks } 
-                } 
-            },
-            { new: true, runValidators: true }
-        );
+        const worker = await workersModel.findOne({ user: req.user.id });
 
         if (!worker) {
             return res.status(404).json({ message: 'Worker not found' });
         }
+
+        const existingIndex = worker.availability.findIndex(item => item.dayOfWeek === dayOfWeek);
+
+        if (existingIndex >= 0) {
+            worker.availability[existingIndex].timeBlocks = timeBlocks;
+        } else {
+            worker.availability.push({ dayOfWeek, timeBlocks });
+        }
+
+        await worker.save();
 
         res.status(201).json(worker);
     } catch (error) {
@@ -128,17 +131,35 @@ export const addAvailability = async (req, res) => {
 // Update availability for a specific day
 export const updateAvailability = async (req, res) => {
     try {
-        const { dayOfWeek, timeBlocks } = req.body;
+        const dayOfWeek = req.params.dayOfWeek || req.body.dayOfWeek;
+        const { timeBlocks } = req.body;
 
-        const worker = await workersModel.findOneAndUpdate(
-            { user: req.user.id, "availability.dayOfWeek": dayOfWeek },
-            { $set: { "availability.$.timeBlocks": timeBlocks } },
-            { new: true, runValidators: true }
-        );
+        if (!dayOfWeek) {
+            return res.status(400).json({ message: 'dayOfWeek is required in the URL or request body.' });
+        }
+
+        if (!timeBlocks) {
+            return res.status(400).json({ message: 'timeBlocks is required in the request body.' });
+        }
+
+        if (!Array.isArray(timeBlocks)) {
+            return res.status(400).json({ message: 'timeBlocks must be an array.' });
+        }
+
+        const worker = await workersModel.findOne({ user: req.user.id });
 
         if (!worker) {
-            return res.status(404).json({ message: 'Worker or availability slot not found' });
+            return res.status(404).json({ message: 'Worker not found.' });
         }
+
+        const availabilityIndex = worker.availability.findIndex(item => item.dayOfWeek === dayOfWeek);
+
+        if (availabilityIndex === -1) {
+            return res.status(404).json({ message: `No availability record found for dayOfWeek '${dayOfWeek}'. Use POST /availability first.` });
+        }
+
+        worker.availability[availabilityIndex].timeBlocks = timeBlocks;
+        await worker.save();
 
         res.status(200).json(worker);
     } catch (error) {

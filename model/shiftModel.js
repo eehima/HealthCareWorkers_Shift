@@ -41,17 +41,17 @@ const shiftSchema = new mongoose.Schema(
       trim: true,
     },
 
-    specialization: {
+    specialty: {
       type: String,
       enum: [
-        "Nurse",
-        "Doctor",
-        "Caregiver",
-        "Pharmacist",
-        "Lab Technician",
-        "Therapist",
-        "Pediatrician",
-        "Other",
+        "nurse",
+        "doctor",
+        "caregiver",
+        "pharmacist",
+        "lab technician",
+        "therapist",
+        "pediatrician",
+        "other",
       ],
       required: true,
     },
@@ -90,7 +90,7 @@ const shiftSchema = new mongoose.Schema(
 
     shiftType: {
       type: String,
-      enum: ["Morning", "Afternoon", "Night"],
+      enum: ["morning", "afternoon", "night"],
       required: true,
     },
 

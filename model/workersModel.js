@@ -45,6 +45,18 @@ const workerSchema = new mongoose.Schema({
     type:String
   },
   
+  availability: [
+    {
+      dayOfWeek: { type: String },
+      timeBlocks: [
+        {
+          start: { type: String },
+          end: { type: String }
+        }
+      ]
+    }
+  ],
+  
   certifications: [
     {
       documentName: String,
