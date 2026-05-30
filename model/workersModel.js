@@ -26,6 +26,11 @@ const workerSchema = new mongoose.Schema({
         enum: ["nurse", "doctor", "therapist", "technician", "other"],
         required: true
     },
+    // experience: {
+    //     type: Number,
+    //     required: true,
+    //     min: 0
+    // },
     credentials: {
         type: String,
         documentName: String,
@@ -39,6 +44,30 @@ const workerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    availability: [
+        {
+            dayOfWeek: {
+                type: String,
+                enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                required: true
+            },
+            timeBlocks: [
+                {
+                    startTime: {
+                        type: String,
+                        required: true,
+                        match: /^([0-1]\d|2[0-3]):([0-5]\d)$/ // HH:MM format
+                    },
+                    endTime: {
+                        type: String,
+                        required: true,
+                        match: /^([0-1]\d|2[0-3]):([0-5]\d)$/ // HH:MM format
+                    },
+                    _id: false // Disable individual IDs for sub-documents
+                }
+            ]
+        }
+    ]
 },{
     timestamps: true
 });
