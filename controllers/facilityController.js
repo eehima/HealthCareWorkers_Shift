@@ -1,5 +1,7 @@
 import facilityModel from "../model/facilityModel.js";
 
+
+
 // create facility
 export const createFacility = async (req, res) => {
   try {

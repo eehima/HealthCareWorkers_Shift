@@ -1,10 +1,10 @@
 import Shift from '../model/shiftModel.js';
-import User from '../model/workersModel.js';
+import Worker from '../model/workersModel.js';
 
 // POST /api/worker/shifts/:id/apply
 export const applyForShift = async (req, res) => {
   try {
-    const worker = await User.findById(req.user.id);
+    const worker = await Worker.findOne({ user: req.user.id });
 
     if (worker.verificationStatus !== 'Approved') {
       return res.status(403).json({ 
@@ -38,7 +38,7 @@ export const applyForShift = async (req, res) => {
 
 export const discoverShifts = async (req, res) => {
   try {
-    const worker = await User.findById(req.user.id);
+    const worker = await Worker.findOne({ user: req.user.id });
 
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
