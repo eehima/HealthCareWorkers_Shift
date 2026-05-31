@@ -1,4 +1,5 @@
 import express from "express";
+import { protect, authorize } from '../middleware/authMiddleware.js';
 import {
   createFacility,
   getAllFacility,
@@ -8,10 +9,11 @@ import {
 } from "../controllers/facilityController.js";
 const router = express.Router();
 
-router.post("/createFacility", createFacility);
-router.get("/getAllFacility", getAllFacility);
-router.get("/getOneFacilityById/:id", getOneFacilityById);
-router.patch("/updateOneFacilityById/:id", updateOneFacilityById);
-router.delete("/deleteOneFacilityById/:id", deleteOneFacilityById);
+// Facility CRUD routes
+router.post("/", protect, authorize('facility'), createFacility);
+router.get("/", getAllFacility);
+router.get("/:id", getOneFacilityById);
+router.patch("/:id", updateOneFacilityById);
+router.delete("/:id", deleteOneFacilityById);
 
 export default router;

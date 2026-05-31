@@ -1,24 +1,48 @@
 import facilityModel from "../model/facilityModel.js";
+import User from "../model/userModel.js";
 
 
-
-// create facility
+// create facility (requires authenticated facility user)
 export const createFacility = async (req, res) => {
   try {
-    const { facilityName, email, phoneNumber, address, licenseNumber } =
-      req.body;
+    const userId = req.user && req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'facility') {
+      return res.status(403).json({ message: 'Only facility users can create a facility' });
+    }
+
+    const { facilityName, phoneNumber, address, licenseNumber } = req.body;
+
+    if (!facilityName || !licenseNumber) {
+      return res.status(400).json({ message: 'facilityName and licenseNumber are required' });
+    }
+
+    // prevent duplicate facility for same user
+    const existing = await facilityModel.findOne({ createdBy: userId });
+    if (existing) {
+      return res.status(400).json({ message: 'Facility already exists for this account' });
+    }
+
     const newFacility = await facilityModel.create({
       facilityName,
-      email,
+      email: user.email,
       phoneNumber,
       address,
       licenseNumber,
+      createdBy: userId
     });
-    return res
-      .status(201)
-      .json({ message: "Facility created successfully", newFacility });
+
+    return res.status(201).json({ message: 'Facility created successfully', newFacility });
   } catch (error) {
-    return res.status(500).json({ message: "Error creating facility", error });
+    return res.status(500).json({ message: 'Error creating facility', error: error.message });
   }
 };
 

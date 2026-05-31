@@ -5,9 +5,11 @@ import dotenv from "dotenv";
 import dns from "dns";
 import connectDB from "./config/db.js";
 import workerRoutes from "./routes/workerRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import facilityRoutes from "./routes/facilityRoutes.js";
 import shiftRoutes from "./routes/shiftRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -28,17 +30,23 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
+// Auth routes
+app.use('/api/auth', authRoutes);
+
 // Worker routes
 app.use("/api/workers", workerRoutes);
 
-// Facilty routes
+// Facility routes
 app.use("/api/facilities", facilityRoutes);
 
-//Shift Routes
+// Shift routes
 app.use("/api/shifts", shiftRoutes);
 
-//Application routes
+// Application routes
 app.use("/api/applications", applicationRoutes);
+
+// Admin routes
+app.use("/api/admin", adminRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

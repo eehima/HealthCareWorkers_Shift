@@ -69,6 +69,16 @@ const workerSchema = new mongoose.Schema({
     type: String,
     enum: ["Pending", "Approved", "Rejected"],
     default: "Pending"
+  },
+
+  verificationNotes: {
+    type: String,
+    trim: true
+  },
+
+  rejectionReason: {
+    type: String,
+    trim: true
   }
 
 }, {

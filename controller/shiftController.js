@@ -4,7 +4,13 @@ import Worker from '../model/workersModel.js';
 // POST /api/worker/shifts/:id/apply
 export const applyForShift = async (req, res) => {
   try {
+    console.log('discover/apply: req.user=', req.user);
     const worker = await Worker.findOne({ user: req.user.id });
+
+    if (!worker) {
+      console.error('Worker not found for user id:', req.user.id);
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
 
     if (worker.verificationStatus !== 'Approved') {
       return res.status(403).json({ 
@@ -18,7 +24,8 @@ export const applyForShift = async (req, res) => {
       return res.status(404).json({ message: 'Shift not found.' });
     }
 
-    if (shift.status !== 'Open') {
+    // status values are stored lowercase in the model
+    if (shift.status !== 'open') {
       return res.status(400).json({ message: 'This shift is no longer available.' });
     }
 
@@ -38,9 +45,11 @@ export const applyForShift = async (req, res) => {
 
 export const discoverShifts = async (req, res) => {
   try {
+    console.log('discoverShifts: req.user=', req.user);
     const worker = await Worker.findOne({ user: req.user.id });
 
     if (!worker) {
+      console.error('Worker not found for user id:', req.user.id);
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
@@ -50,9 +59,10 @@ export const discoverShifts = async (req, res) => {
       });
     }
 
+    // match model fields: status value is 'open' and specialty field is 'specialty'
     const shifts = await Shift.find({
-      status: 'Open',
-      requiredSpecialty: worker.specialty
+      status: 'open',
+      specialty: worker.specialty
     });
 
     res.status(200).json({

@@ -15,12 +15,21 @@ const signToken = (id) => {
 export const registerUser = async (req, res) => {
     try {
         console.log(`authControllers.registerUser called: ${req.method} ${req.originalUrl}`);
-        const { email, password, firstName, lastName, phoneNumber, specialty } = req.body;
+        const { email, password, firstName, lastName, phoneNumber, specialty, role } = req.body;
+
+        const userRole = role ? role.toLowerCase() : 'worker';
+
+        // Only allow worker or facility registrations here
+        if (!['worker', 'facility'].includes(userRole)) {
+            return res.status(400).json({ message: 'Invalid role. Allowed roles: worker, facility' });
+        }
+
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'Email already in use' });
         };
+
         // generate email verification token
         const emailVerificationToken = crypto.randomBytes(32).toString('hex');
         const hashedEmailVerificationToken = crypto.createHash('sha256').update(emailVerificationToken).digest('hex');
@@ -29,24 +38,28 @@ export const registerUser = async (req, res) => {
         const newUser = await User.create({
             email,
             password,
-            role: 'worker',
+            role: userRole,
             emailVerificationToken: hashedEmailVerificationToken,
             emailVerificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000
         });
 
-        // create worker profile
-        const worker = await Worker.create({
-            user: newUser._id,
-            firstName,
-            lastName,
-            phoneNumber,
-            specialty
+        // If registering a worker, create a Worker profile
+        if (userRole === 'worker') {
+            await Worker.create({
+                user: newUser._id,
+                firstName,
+                lastName,
+                phoneNumber,
+                specialty
+            });
+        }
+
+        res.status(201).json({
+            message: 'User registered successfully. Please check your email to verify your account.',
+            emailVerificationToken,
+            userId: newUser._id,
+            role: userRole
         });
-    
-    res.status(201).json({
-        message: 'User registered successfully. Please check your email to verify your account.',
-        emailVerificationToken
-    });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
