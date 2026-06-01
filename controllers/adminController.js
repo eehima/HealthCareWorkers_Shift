@@ -8,7 +8,7 @@ import Application from '../model/applicationModel.js';
 export const getAllUsers = async (req, res) => {
   try {
     console.log(`adminController.getAllUsers called: ${req.method} ${req.originalUrl}`);
-    const users = await User.find().select('-password -emailVerificationToken -passwordResetToken');
+    const users = await User.find().select('-password');
     res.status(200).json({
       status: 'success',
       total: users.length,
@@ -24,7 +24,7 @@ export const getUserById = async (req, res) => {
   try {
     console.log(`adminController.getUserById called: ${req.method} ${req.originalUrl}`);
     const { userId } = req.params;
-    const user = await User.findById(userId).select('-password -emailVerificationToken -passwordResetToken');
+    const user = await User.findById(userId).select('-password');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -54,7 +54,7 @@ export const updateUserRole = async (req, res) => {
       userId,
       { role },
       { new: true, runValidators: true }
-    ).select('-password -emailVerificationToken -passwordResetToken');
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -101,7 +101,7 @@ export const getAllWorkers = async (req, res) => {
   try {
     console.log(`adminController.getAllWorkers called: ${req.method} ${req.originalUrl}`);
     const workers = await Worker.find()
-      .populate('user', '-password -emailVerificationToken -passwordResetToken');
+      .populate('user', '-password');
     
     res.status(200).json({
       status: 'success',
@@ -119,7 +119,7 @@ export const getWorkerById = async (req, res) => {
     console.log(`adminController.getWorkerById called: ${req.method} ${req.originalUrl}`);
     const { workerId } = req.params;
     const worker = await Worker.findById(workerId)
-      .populate('user', '-password -emailVerificationToken -passwordResetToken');
+      .populate('user', '-password');
     
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found' });
@@ -149,7 +149,7 @@ export const approveWorker = async (req, res) => {
         verificationNotes: notes || ''
       },
       { new: true, runValidators: true }
-    ).populate('user', '-password -emailVerificationToken -passwordResetToken');
+    ).populate('user', '-password');
 
     // If not found, try treating workerId as a user id
     if (!worker) {
@@ -161,7 +161,7 @@ export const approveWorker = async (req, res) => {
           verificationNotes: notes || ''
         },
         { new: true, runValidators: true }
-      ).populate('user', '-password -emailVerificationToken -passwordResetToken');
+      ).populate('user', '-password');
     }
 
     if (!worker) {
@@ -197,7 +197,7 @@ export const rejectWorker = async (req, res) => {
         rejectionReason: reason
       },
       { new: true, runValidators: true }
-    ).populate('user', '-password -emailVerificationToken -passwordResetToken');
+    ).populate('user', '-password');
 
     // If not found, try treating workerId as a user id
     if (!worker) {
@@ -209,7 +209,7 @@ export const rejectWorker = async (req, res) => {
           rejectionReason: reason
         },
         { new: true, runValidators: true }
-      ).populate('user', '-password -emailVerificationToken -passwordResetToken');
+      ).populate('user', '-password');
     }
 
     if (!worker) {
@@ -231,8 +231,8 @@ export const getAllFacilities = async (req, res) => {
   try {
     console.log(`adminController.getAllFacilities called: ${req.method} ${req.originalUrl}`);
     const facilities = await Facility.find()
-      .populate('createdBy', '-password -emailVerificationToken -passwordResetToken')
-      .populate('workers', '-password -emailVerificationToken -passwordResetToken');
+      .populate('createdBy', '-password')
+      .populate('workers', '-password');
     
     res.status(200).json({
       status: 'success',
@@ -250,8 +250,8 @@ export const getFacilityById = async (req, res) => {
     console.log(`adminController.getFacilityById called: ${req.method} ${req.originalUrl}`);
     const { facilityId } = req.params;
     const facility = await Facility.findById(facilityId)
-      .populate('createdBy', '-password -emailVerificationToken -passwordResetToken')
-      .populate('workers', '-password -emailVerificationToken -passwordResetToken');
+      .populate('createdBy', '-password')
+      .populate('workers', '-password');
     
     if (!facility) {
       return res.status(404).json({ message: 'Facility not found' });
