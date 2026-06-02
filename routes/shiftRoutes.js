@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
-const { discoverShifts, applyForShift } = require('../controller/shiftController');
-const { createShift, getAllShifts, getOneShiftById, updateShiftById, deleteShiftById } = require('../controllers/shiftController.js');
-const protect = require('../middleware/authMiddleware');
+import { discoverShifts, applyForShift } from '../controller/shiftController.js';
+import { createShift, getAllShifts, getOneShiftById, updateShiftById, deleteShiftById } from '../controllers/shiftController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 // Worker routes
 router.get('/discover', protect, discoverShifts);
@@ -16,4 +16,4 @@ router.get('/getOneShiftById/:id', getOneShiftById);
 router.patch('/updateShiftById/:id', updateShiftById);
 router.delete('/deleteShiftById/:id', deleteShiftById);
 
-module.exports = router;
+export default router;

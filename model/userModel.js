@@ -21,6 +21,16 @@ const userSchema = new mongoose.Schema({
         enum:["worker","admin", "facility"],
         required:true
     },
+    verificationStatus: {
+  type: String,
+  enum: ["Pending", "Approved", "Rejected"],
+  default: "Pending"
+    },
+   facilityStatus: {
+        type: String,
+        enum: ["Pending", "Approved", "Rejected"],
+        default: "Pending"
+    },
     isEmailVerified:{
         type:Boolean,
         default:false
