@@ -1,5 +1,5 @@
-const Shift = require('../model/shiftModel');
-const User = require('../model/userModel');
+import Shift from '../model/shiftModel.js';
+import User from '../model/userModel.js';
 
 // GET /api/worker/shifts/discover
 const discoverShifts = async (req, res) => {
@@ -66,4 +66,4 @@ const applyForShift = async (req, res) => {
   }
 };
 
-module.exports = { discoverShifts, applyForShift };
+export { discoverShifts, applyForShift };

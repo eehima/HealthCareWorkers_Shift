@@ -8,6 +8,7 @@ import workerRoutes from "./routes/workerRoutes.js";
 import facilityRoutes from "./routes/facilityRoutes.js";
 import shiftRoutes from "./routes/shiftRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,9 @@ app.use("/api/shifts", shiftRoutes);
 
 //Application routes
 app.use("/api/applications", applicationRoutes);
+
+// Admin routes
+app.use("/api/admin", adminRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
