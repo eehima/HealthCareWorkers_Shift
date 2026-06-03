@@ -1,7 +1,7 @@
 // Availability routes
 import express from "express";
 import * as workersController from "../controllers/workersController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
