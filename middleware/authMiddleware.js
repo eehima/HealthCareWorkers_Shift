@@ -1,31 +1,55 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
+import User from '../model/userModel.js';
 
-const protect = (req, res, next) => {
+
+export const protect = (req, res, next) => {
   try {
-    // Step 1: Check if a token was sent with the request
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
       return res.status(401).json({ message: 'No token provided. Please log in.' });
     }
 
-    // Step 2: Remove the word "Bearer " from the front to get the raw token
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
-    // Step 3: Decode the token to find out who the user is
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Step 4: Attach the user's ID to the request
-    req.user = decoded;
+    // normalize user id into both `id` and `_id` for compatibility
+    const userId = decoded.id || decoded._id || decoded.userId || null;
+    req.user = {
+      ...decoded,
+      id: userId,
+      _id: userId
+    };
 
-    // Step 5: Move on to the actual endpoint
     next();
-
   } catch (error) {
     res.status(401).json({ message: 'Invalid token. Please log in again.' });
   }
 };
 
-module.exports = protect;
+// Role-based access control middleware
+export const authorize = (...allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated. Please log in.' });
+      }
+
+      const user = await User.findById(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: 'You do not have permission to access this resource.' });
+      }
+
+      req.user.role = user.role;
+      next();
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
+};
