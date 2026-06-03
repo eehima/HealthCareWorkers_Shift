@@ -1,8 +1,13 @@
+import crypto from 'crypto';
+import mongoose from 'mongoose';
 import User from '../model/userModel.js';
 import Worker from '../model/workersModel.js';
 import Facility from '../model/facilityModel.js';
 import Shift from '../model/shiftModel.js';
 import Application from '../model/applicationModel.js';
+import PaymentTransaction from '../model/paymentTransactionModel.js';
+import PlatformSetting from '../model/platformSettingModel.js';
+import EscrowWallet from '../model/escrowWalletModel.js';
 
 // Get all users
 export const getAllUsers = async (req, res) => {
@@ -323,7 +328,7 @@ export const getAllShifts = async (req, res) => {
   try {
     console.log(`adminController.getAllShifts called: ${req.method} ${req.originalUrl}`);
     const shifts = await Shift.find()
-      .populate('facility')
+      .populate('facilityId')
       .populate('assignedWorkers');
     
     res.status(200).json({
@@ -341,14 +346,339 @@ export const getAllApplications = async (req, res) => {
   try {
     console.log(`adminController.getAllApplications called: ${req.method} ${req.originalUrl}`);
     const applications = await Application.find()
-      .populate('worker')
-      .populate('shift');
+      .populate('workerId')
+      .populate('shiftId');
     
     res.status(200).json({
       status: 'success',
       total: applications.length,
       data: applications
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Create a mock payment or escrow transaction
+export const createMockPayment = async (req, res) => {
+  try {
+    console.log(`adminController.createMockPayment called: ${req.method} ${req.originalUrl}`);
+    const {
+      transactionType,
+      amount,
+      currency,
+      payer,
+      payee,
+      relatedShift,
+      relatedFacility,
+      adminNotes,
+      details,
+    } = req.body;
+
+    if (!['payment', 'escrow'].includes(transactionType)) {
+      return res.status(400).json({ message: 'Invalid transaction type. Must be payment or escrow.' });
+    }
+
+    if (typeof amount !== 'number' || amount < 0) {
+      return res.status(400).json({ message: 'Amount must be a non-negative number.' });
+    }
+
+    const validObjectId = (value) => !value || mongoose.Types.ObjectId.isValid(value);
+
+    if (!validObjectId(payer) || !validObjectId(payee) || !validObjectId(relatedShift) || !validObjectId(relatedFacility)) {
+      return res.status(400).json({ message: 'One or more provided IDs are invalid.' });
+    }
+
+    const transactionReference = `MOCK-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+    // determine commission percent (admin-configurable)
+    const setting = await PlatformSetting.findOne();
+    const commissionPercent = setting && typeof setting.commissionPercent === 'number'
+      ? setting.commissionPercent
+      : (process.env.PLATFORM_COMMISSION_PERCENT ? parseFloat(process.env.PLATFORM_COMMISSION_PERCENT) : 10);
+
+    const platformFee = Math.round((amount * (commissionPercent / 100)) * 100) / 100; // 2 decimals
+    const netAmount = Math.round((amount - platformFee) * 100) / 100;
+
+    const walletCurrency = currency || (setting && setting.currency) || 'NGN';
+    const escrowWallet = await EscrowWallet.findOneAndUpdate(
+      {},
+      {
+        $inc: {
+          heldBalance: netAmount,
+          commissionBalance: platformFee,
+        },
+        $set: {
+          currency: walletCurrency,
+          updatedBy: req.user.id,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    const payment = await PaymentTransaction.create({
+      transactionReference,
+      transactionType,
+      amount,
+      currency: walletCurrency,
+      payer,
+      payee,
+      relatedShift,
+      relatedFacility,
+      status: 'escrowed',
+      gateway: 'mock',
+      adminNotes,
+      details,
+      appliedCommissionPercent: commissionPercent,
+      platformFee,
+      netAmount,
+      escrowedAt: Date.now(),
+      createdBy: req.user.id,
+    });
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Mock payment transaction created and held in escrow successfully',
+      transaction: payment,
+      escrowWallet,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get all mock payment or escrow transactions
+export const getAllMockPayments = async (req, res) => {
+  try {
+    console.log(`adminController.getAllMockPayments called: ${req.method} ${req.originalUrl}`);
+    const { transactionType, status } = req.query;
+    const filter = {};
+
+    if (transactionType) {
+      if (!['payment', 'escrow'].includes(transactionType)) {
+        return res.status(400).json({ message: 'Invalid transactionType query. Use payment or escrow.' });
+      }
+      filter.transactionType = transactionType;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const transactions = await PaymentTransaction.find(filter)
+      .populate('payer', '-password')
+      .populate('payee', '-password')
+      .populate('relatedShift')
+      .populate('relatedFacility')
+      .populate('createdBy', '-password');
+
+    res.status(200).json({
+      status: 'success',
+      total: transactions.length,
+      data: transactions,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get escrow wallet status
+export const getEscrowWallet = async (req, res) => {
+  try {
+    console.log(`adminController.getEscrowWallet called: ${req.method} ${req.originalUrl}`);
+    let wallet = await EscrowWallet.findOne();
+    if (!wallet) {
+      wallet = await EscrowWallet.create({ updatedBy: req.user.id });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: wallet,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Settle a mock payment transaction and release net amount from escrow
+export const settleMockPayment = async (req, res) => {
+  try {
+    console.log(`adminController.settleMockPayment called: ${req.method} ${req.originalUrl}`);
+    const { paymentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ message: 'Invalid payment ID.' });
+    }
+
+    const transaction = await PaymentTransaction.findById(paymentId);
+    if (!transaction) {
+      return res.status(404).json({ message: 'Mock payment transaction not found' });
+    }
+
+    if (transaction.status === 'released') {
+      return res.status(400).json({ message: 'Transaction is already settled.' });
+    }
+    if (transaction.status === 'cancelled' || transaction.status === 'refunded') {
+      return res.status(400).json({ message: 'Cannot settle a cancelled or refunded transaction.' });
+    }
+
+    transaction.status = 'released';
+    transaction.releasedAt = Date.now();
+    transaction.settledBy = req.user.id;
+    await transaction.save();
+
+    const wallet = await EscrowWallet.findOneAndUpdate(
+      {},
+      {
+        $inc: {
+          heldBalance: -transaction.netAmount,
+          releasedBalance: transaction.netAmount,
+        },
+        $set: {
+          updatedBy: req.user.id,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Transaction settled and net amount released from escrow.',
+      transaction,
+      escrowWallet: wallet,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get one mock payment transaction by ID
+export const getMockPaymentById = async (req, res) => {
+  try {
+    console.log(`adminController.getMockPaymentById called: ${req.method} ${req.originalUrl}`);
+    const { paymentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ message: 'Invalid payment ID.' });
+    }
+
+    const transaction = await PaymentTransaction.findById(paymentId)
+      .populate('payer', '-password')
+      .populate('payee', '-password')
+      .populate('relatedShift')
+      .populate('relatedFacility')
+      .populate('createdBy', '-password');
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Mock payment transaction not found' });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: transaction,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Update mock payment transaction status
+export const updateMockPaymentStatus = async (req, res) => {
+  try {
+    console.log(`adminController.updateMockPaymentStatus called: ${req.method} ${req.originalUrl}`);
+    const { paymentId } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ message: 'Invalid payment ID.' });
+    }
+
+    const transaction = await PaymentTransaction.findById(paymentId);
+    if (!transaction) {
+      return res.status(404).json({ message: 'Mock payment transaction not found' });
+    }
+
+    const validStatuses = {
+      payment: ['pending', 'processing', 'completed', 'refunded', 'cancelled'],
+      escrow: ['pending', 'escrowed', 'released', 'refunded', 'cancelled'],
+    };
+
+    if (!status || !validStatuses[transaction.transactionType].includes(status)) {
+      return res.status(400).json({
+        message: `Invalid status for ${transaction.transactionType}. Valid values: ${validStatuses[transaction.transactionType].join(', ')}`,
+      });
+    }
+
+    transaction.status = status;
+    await transaction.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Mock payment transaction status updated successfully',
+      data: transaction,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Cancel a mock payment transaction
+export const cancelMockPayment = async (req, res) => {
+  try {
+    console.log(`adminController.cancelMockPayment called: ${req.method} ${req.originalUrl}`);
+    const { paymentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ message: 'Invalid payment ID.' });
+    }
+
+    const transaction = await PaymentTransaction.findById(paymentId);
+    if (!transaction) {
+      return res.status(404).json({ message: 'Mock payment transaction not found' });
+    }
+
+    transaction.status = 'cancelled';
+    await transaction.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Mock payment transaction cancelled successfully',
+      data: transaction,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get platform settings (admin)
+export const getPlatformSettings = async (req, res) => {
+  try {
+    console.log(`adminController.getPlatformSettings called: ${req.method} ${req.originalUrl}`);
+    let setting = await PlatformSetting.findOne();
+    if (!setting) {
+      // create default if missing
+      setting = await PlatformSetting.create({ updatedBy: req.user.id });
+    }
+    res.status(200).json({ status: 'success', data: setting });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Update platform settings (admin)
+export const updatePlatformSettings = async (req, res) => {
+  try {
+    console.log(`adminController.updatePlatformSettings called: ${req.method} ${req.originalUrl}`);
+    const { commissionPercent, currency } = req.body;
+
+    const update = {};
+    if (typeof commissionPercent !== 'undefined') update.commissionPercent = commissionPercent;
+    if (typeof currency !== 'undefined') update.currency = currency;
+    update.updatedBy = req.user.id;
+
+    let setting = await PlatformSetting.findOneAndUpdate({}, update, { new: true, upsert: true, runValidators: true });
+
+    res.status(200).json({ status: 'success', message: 'Platform settings updated', data: setting });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -377,6 +707,8 @@ export const getDashboardStats = async (req, res) => {
       }
     ]);
 
+    const wallet = await EscrowWallet.findOne();
+
     res.status(200).json({
       status: 'success',
       data: {
@@ -392,7 +724,20 @@ export const getDashboardStats = async (req, res) => {
           rejected: rejectedFacilities
         },
         shifts: totalShifts,
-        applications: totalApplications
+        applications: totalApplications,
+        escrowWallet: wallet
+          ? {
+              currency: wallet.currency,
+              heldBalance: wallet.heldBalance,
+              releasedBalance: wallet.releasedBalance,
+              commissionBalance: wallet.commissionBalance,
+            }
+          : {
+              currency: 'NGN',
+              heldBalance: 0,
+              releasedBalance: 0,
+              commissionBalance: 0,
+            }
       }
     });
   } catch (error) {

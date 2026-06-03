@@ -15,7 +15,16 @@ import {
   rejectFacility,
   getAllShifts,
   getAllApplications,
-  getDashboardStats
+  getDashboardStats,
+  createMockPayment,
+  getAllMockPayments,
+  getMockPaymentById,
+  updateMockPaymentStatus,
+  cancelMockPayment,
+  getEscrowWallet,
+  settleMockPayment,
+  getPlatformSettings,
+  updatePlatformSettings
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -47,5 +56,15 @@ router.patch('/facilities/:facilityId/reject', rejectFacility);
 // Shifts and Applications
 router.get('/shifts', getAllShifts);
 router.get('/applications', getAllApplications);
+router.get('/payments', getAllMockPayments);
+router.get('/payments/:paymentId', getMockPaymentById);
+router.post('/payments', createMockPayment);
+router.patch('/payments/:paymentId/status', updateMockPaymentStatus);
+router.post('/payments/:paymentId/settle', settleMockPayment);
+router.delete('/payments/:paymentId', cancelMockPayment);
+router.get('/escrow/wallet', getEscrowWallet);
+// Platform settings
+router.get('/platform/settings', getPlatformSettings);
+router.patch('/platform/settings', updatePlatformSettings);
 
 export default router;

@@ -12,6 +12,7 @@ const signToken = (id) => {
     });
 };
 
+// generate OTP
 const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
@@ -21,8 +22,10 @@ export const registerUser = async (req, res) => {
     try {
         console.log(`authControllers.registerUser called: ${req.method} ${req.originalUrl}`);
         const { email, password, firstName, lastName, phoneNumber, specialty, role } = req.body;
-
-        const userRole = role ? role.toLowerCase() : 'worker';
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+        const userRole = role ? role.toLowerCase() : 'worker'; // default to worker if not provided
 
         // Only allow worker or facility registrations here
         if (!['worker', 'facility'].includes(userRole)) {

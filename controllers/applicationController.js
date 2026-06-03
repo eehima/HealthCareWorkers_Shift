@@ -1,5 +1,6 @@
 import applicationModel from "../model/applicationModel.js";
 import shiftModel from "../model/shiftModel.js";
+import {sendShiftAssignmentEmail} from  "../utils/emailService.js";
 
 // APPLY FOR SHIFT
 export const applyForShift = async (req, res) => {

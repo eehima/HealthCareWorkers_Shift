@@ -73,3 +73,29 @@ export const sendPasswordResetEmail = async ({ to, otp }) => {
     textContent,
   });
 };
+
+// send notification email to worker when they are assigned to a shift
+export const sendShiftAssignmentEmail = async ({ to, shiftDetails }) => {
+  const htmlContent = `
+    <h2>New Shift Assignment</h2>
+    <p>You have been assigned to a new shift with the following details:</p>
+    <ul>
+      <li><strong>Shift ID:</strong> ${shiftDetails._id}</li>
+      <li><strong>Start Time:</strong> ${new Date(shiftDetails.startTime).toLocaleString()}</li>
+      <li><strong>End Time:</strong> ${new Date(shiftDetails.endTime).toLocaleString()}</li>
+      <li><strong>Facility:</strong> ${shiftDetails.facilityId?.name || 'N/A'}</li>
+    </ul>
+  `;
+  const textContent = `You have been assigned to a new shift with the following details:
+- Shift ID: ${shiftDetails._id}
+- Start Time: ${new Date(shiftDetails.startTime).toLocaleString()}
+- End Time: ${new Date(shiftDetails.endTime).toLocaleString()}
+- Facility: ${shiftDetails.facilityId?.name || 'N/A'}`;
+
+  return sendBrevoEmail({
+    to,
+    subject: 'New Shift Assignment',
+    htmlContent,
+    textContent,
+  });
+};
