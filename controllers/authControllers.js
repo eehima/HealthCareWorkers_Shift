@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import User from '../model/userModel.js';
@@ -19,6 +20,9 @@ const generateOTP = () => {
 
 // Register a new user
 export const registerUser = async (req, res) => {
+    const session = await mongoose.startSession();
+    let createdUserId = null;
+    let emailVerificationOTP = null;
     try {
         console.log(`authControllers.registerUser called: ${req.method} ${req.originalUrl}`);
         const { email, password, firstName, lastName, phoneNumber, specialty, role } = req.body;
@@ -32,36 +36,49 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'Invalid role. Allowed roles: worker, facility' });
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Email already in use' });
-        };
+        // Run creation in a transaction so both User and Worker are created atomically
+        await session.withTransaction(async () => {
+            // Check existing user within transaction
+            const existingUser = await User.findOne({ email }).session(session);
+            if (existingUser) {
+                const err = new Error('Email already in use');
+                err.status = 400;
+                throw err;
+            }
 
-        // generate email verification OTP
-        const emailVerificationOTP = generateOTP();
-        const hashedEmailVerificationOTP = crypto.createHash('sha256').update(emailVerificationOTP).digest('hex');
+            // generate email verification OTP
+            emailVerificationOTP = generateOTP();
+            const hashedEmailVerificationOTP = crypto.createHash('sha256').update(emailVerificationOTP).digest('hex');
 
-        // create Base user
-        const newUser = await User.create({
-            email,
-            password,
-            role: userRole,
-            emailVerificationOTP: hashedEmailVerificationOTP,
-            emailVerificationOTPExpires: Date.now() + 10 * 60 * 1000
+            // create Base user inside transaction
+            const users = await User.create([
+                {
+                    email,
+                    password,
+                    role: userRole,
+                    emailVerificationOTP: hashedEmailVerificationOTP,
+                    emailVerificationOTPExpires: Date.now() + 10 * 60 * 1000
+                }
+            ], { session });
+
+            const newUser = users[0];
+            createdUserId = newUser._id;
+
+            // If registering a worker, create a Worker profile inside transaction
+            if (userRole === 'worker') {
+                await Worker.create([
+                    {
+                        user: newUser._id,
+                        firstName,
+                        lastName,
+                        phoneNumber,
+                        specialty
+                    }
+                ], { session });
+            }
         });
 
-        // If registering a worker, create a Worker profile
-        if (userRole === 'worker') {
-            await Worker.create({
-                user: newUser._id,
-                firstName,
-                lastName,
-                phoneNumber,
-                specialty
-            });
-        }
-
+        // Transaction committed successfully; send verification email outside the transaction
         await sendVerificationEmail({
             to: email,
             otp: emailVerificationOTP,
@@ -69,11 +86,23 @@ export const registerUser = async (req, res) => {
 
         res.status(201).json({
             message: 'User registered successfully. A verification OTP has been sent to your email.',
-            userId: newUser._id,
+            userId: createdUserId,
             role: userRole
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        // If transaction failed but a user document was created (in case transactions aren't supported), attempt cleanup
+        if (createdUserId) {
+            try {
+                await User.findByIdAndDelete(createdUserId);
+            } catch (cleanupErr) {
+                console.error('Failed to cleanup partially created user:', cleanupErr);
+            }
+        }
+
+        const status = error.status || 500;
+        res.status(status).json({ message: error.message || 'Server error', error: error.message });
+    } finally {
+        session.endSession();
     }
 };
 
