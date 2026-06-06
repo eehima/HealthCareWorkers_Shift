@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Shift from '../model/shiftModel.js';
 import Worker from '../model/workersModel.js';
 
@@ -78,7 +79,7 @@ export const discoverShifts = async (req, res) => {
 // discover all shifts for a worker
 export const discoverAllShifts = async (req, res) => {
   try {
-    const shifts = await shiftModel.find();
+    const shifts = await Shift.find();
 
     return res.status(200).json({
       message: "All shifts fetched successfully",
