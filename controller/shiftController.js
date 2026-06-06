@@ -74,3 +74,20 @@ export const discoverShifts = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong', error: error.message });
   }
 };
+
+// discover all shifts for a worker
+export const discoverAllShifts = async (req, res) => {
+  try {
+    const shifts = await shiftModel.find();
+
+    return res.status(200).json({
+      message: "All shifts fetched successfully",
+      shifts,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error fetching shifts",
+      error: error.message,
+    });
+  }
+};

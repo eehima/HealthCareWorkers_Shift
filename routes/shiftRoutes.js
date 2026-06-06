@@ -1,5 +1,5 @@
 import express from 'express';
-import { discoverShifts } from '../controller/shiftController.js';
+import { discoverShifts, discoverAllShifts } from '../controller/shiftController.js';
 import { createShift, getAllShifts, getOneShiftById, updateShiftById, deleteShiftById } from '../controllers/shiftController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Worker routes
 router.get('/discover', protect, discoverShifts);
+router.get('/discover/all', protect, discoverAllShifts);
 // router.post('/:id/apply', protect, applyForShift);
 
 // Facility routes
