@@ -435,11 +435,12 @@ export const createMockPayment = async (req, res) => {
       escrowedAt: Date.now(),
       createdBy: req.user.id,
     });
-
     res.status(201).json({
       status: 'success',
-      message: 'Mock payment transaction created and held in escrow successfully',
-      transaction: payment,
+      message: AUTO_SETTLE_MOCK_PAYMENT
+        ? 'Mock payment transaction created and automatically settled successfully'
+        : 'Mock payment transaction created and held in escrow successfully',
+      transaction: settledPayment,
       escrowWallet,
     });
   } catch (error) {
@@ -744,3 +745,4 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
