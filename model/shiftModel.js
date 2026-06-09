@@ -42,19 +42,20 @@ const shiftSchema = new mongoose.Schema(
     },
 
     specialty: {
-      type: String,
-      enum: [
-        "nurse",
-        "doctor",
-        "caregiver",
-        "pharmacist",
-        "lab technician",
-        "therapist",
-        "pediatrician",
-        "other",
-      ],
-      required: true,
+    type: String,
+    trim: true,
+    required: function () {
+      return this.role === "worker";
     },
+    validate: {
+      validator: function (value) {
+        if (this.role !== "worker") return true;
+         return value && value.trim().length > 2;
+      },
+      message: "Specialty is required and must be at least 3 characters long for workers"
+    },
+    
+  },
 
     workersNeeded: {
       type: Number,
@@ -90,7 +91,7 @@ const shiftSchema = new mongoose.Schema(
 
     shiftType: {
       type: String,
-      enum: ["morning", "afternoon", "night"],
+      enum: ["morning", "afternoon", "night" , "day"],
       required: true,
     },
 
