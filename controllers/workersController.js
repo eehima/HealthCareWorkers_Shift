@@ -1,4 +1,5 @@
 import workersModel from "../model/workersModel.js";
+import { streamUploadToCloudinary } from "../src/controlHelper.js";
 
 // Get all workers
 export const getAllWorkers = async (req, res) => {
@@ -51,8 +52,7 @@ export const updateWorkerProfile = async (req, res) => {
             'specialty',
             'experienceYears',
             'bio',
-            'address',
-            'certifications'
+            'address'
         ];
 
         const updates = {};
@@ -202,3 +202,75 @@ export const deleteAvailability = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// update profile picture
+export const uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        };
+        const imageUrl = await streamUploadToCloudinary(req.file.buffer, 'medhirely_profiles');
+
+        const worker = await workersModel.findOneAndUpdate(
+            { user: req.user.id },
+            { $set : { profilePicture: imageUrl }},
+            { new: true }
+        ).select('-password');
+
+        if (!worker) {
+            return res.status(404).json({ message: 'Worker not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile picture updated successfully',
+            data: worker
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// update worker certifications
+export const updateCertifications = async (req, res) => {
+    try {
+     if(!req.files || req.files.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "please upload a valid national document"
+        })
+     };
+     // loop through the files and upload each one to cloudinary, then get the urls and save them in the worker's certifications array
+       const uploadPromises = req.files.map(file => streamUploadToCloudinary(file.buffer, 'medhirely_certifications'));
+     // wait for all uploads to finish and get the urls, then create an array of certification objects with the name and url, and push them to the worker's certifications array
+       const uploadedUrls = await Promise.all(uploadPromises);
+       const newCertifications = uploadedUrls.map((url, index) => {
+        return {
+            name: req.body.certNames ? (Array.isArray(req.body.certNames) ? req.body.certNames[index] : req.body.certNames) : req.files[index].originalname,
+            documentUrl: url
+        };
+        
+       });
+
+        const worker = await workersModel.findOneAndUpdate( 
+            { user: req.user.id },
+            { $push: { certifications: { $each: newCertifications } } },
+            { new: true }
+        ).select('-password');
+
+        if (!worker) {
+            return res.status(404).json({ message: 'Worker not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Certifications updated successfully',
+            data: worker
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    };
+};
+

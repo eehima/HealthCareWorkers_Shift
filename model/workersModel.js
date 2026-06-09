@@ -27,8 +27,22 @@ const workerSchema = new mongoose.Schema({
 
   specialty: {
     type: String,
-    enum: ["nurse", "doctor", "therapist", "technician", "other"],
-    required: true
+    trim: true,
+    required: function () {
+      return this.role === "worker";
+    },
+    validate: {
+      validator: function (value) {
+        if (this.role !== "worker") return true;
+         return value && value.trim().length > 2;
+      },
+      message: "Specialty is required and must be at least 3 characters long for workers"
+    },
+    
+  },
+  profilePicture: {
+    type: String,
+    default: "https://res.cloudinary.com/dynjimrit/image/upload/v1701364415/default-profile-picture_oxh8lq.png"
   },
 
   experienceYears: {
@@ -59,9 +73,9 @@ const workerSchema = new mongoose.Schema({
   
   certifications: [
     {
-      documentName: String,
-      documentUrl: String,
-      expiryDate: Date
+    name: {type: String, required: true},
+    documentUrl: {type: String, required: true},
+    expiryDate: {type: Date}
     }
   ],
 
