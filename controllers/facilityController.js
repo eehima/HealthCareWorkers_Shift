@@ -1,5 +1,7 @@
 import facilityModel from "../model/facilityModel.js";
 import User from "../model/userModel.js";
+import applicationModel from "../model/applicationModel.js";
+
 
 
 // create facility (requires authenticated facility user)
@@ -112,4 +114,47 @@ export const deleteOneFacilityById = async (req, res) => {
       .json({ message: "Error deleting facility", error: error.message });
   }
 };
-// view shift applicants by ID
+// get all applications for a facility
+export const getApplicationsForFacility = async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'facility') {
+      return res.status(403).json({ message: 'Only facility users can view applications' });
+    }
+
+    const facility = await facilityModel.findOne({ createdBy: userId });
+    if (!facility) {
+      return res.status(404).json({ message: 'Facility not found' });
+    }
+
+    const applications = await applicationModel.find({ facility: facility._id });
+
+    return res.status(200).json({ message: 'Applications fetched successfully', applications });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching applications', error: error.message });
+  }
+};
+
+// get shiftapplicants 
+export const getShiftApplicants = async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+    const applicants = await applicationModel.find({ shift: shiftId }).populate({
+      path: 'workerId',
+      select: 'firstName lastName email specialty certifications ',
+    });
+    return res.status(200).json({ message: 'Applicants fetched successfully', applicants });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching applicants', error: error.message });
+  }
+};
+    
