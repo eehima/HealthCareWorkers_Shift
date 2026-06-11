@@ -1,6 +1,6 @@
 import applicationModel from "../model/applicationModel.js";
 import shiftModel from "../model/shiftModel.js";
-import {sendShiftAssignmentEmail} from  "../utils/emailService.js";
+import { sendShiftAssignmentEmail } from "../utils/emailService.js";
 
 // APPLY FOR SHIFT
 export const applyForShift = async (req, res) => {
@@ -110,6 +110,38 @@ export const assignShift = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Error assigning shift",
+      error: error.message,
+    });
+  }
+};
+
+//WITHDRAW SHIFT
+export const withdrawApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+
+    const application = await applicationModel.findById(applicationId);
+
+    if (!application) {
+      return res.status(404).json({
+        message: "Application not found",
+      });
+    }
+
+    if (application.status === "withdrawn")
+      return res.status(400).json({
+        message: "Application has already been withdrawn",
+      });
+
+    application.status = "withdrawn";
+    await application.save();
+    return res.status(200).json({
+      message: "Application withdrawn successfully",
+      application,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error withdrawing application",
       error: error.message,
     });
   }

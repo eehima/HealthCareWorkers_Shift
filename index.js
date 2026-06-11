@@ -10,6 +10,7 @@ import facilityRoutes from "./routes/facilityRoutes.js";
 import shiftRoutes from "./routes/shiftRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import workerReviewRoutes from "./routes/workerReviewRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +32,7 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 // Auth routes
-app.use('/api/auth', authRoutes);
+app.use("/api/auth", authRoutes);
 
 // Worker routes
 app.use("/api/workers", workerRoutes);
@@ -47,6 +48,9 @@ app.use("/api/applications", applicationRoutes);
 
 // Admin routes
 app.use("/api/admin", adminRoutes);
+
+//Worker Review
+app.use("/api/workerReview", workerReviewRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
