@@ -12,6 +12,9 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import workerReviewRoutes from "./routes/workerReviewRoutes.js";
 
+// Set the port
+const PORT = process.env.PORT || 5000;
+
 // Load environment variables
 dotenv.config();
 
@@ -53,7 +56,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/workerReview", workerReviewRoutes);
 
 // Start the server
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

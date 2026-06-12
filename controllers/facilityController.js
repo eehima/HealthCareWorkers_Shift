@@ -202,3 +202,4 @@ export const updateCertifications = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// view shift applicants by ID
