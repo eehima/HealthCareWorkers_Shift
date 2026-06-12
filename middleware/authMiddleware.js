@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../model/userModel.js';
 
-const skipAuth = process.env.SKIP_AUTH === 'false';
+const skipAuth = process.env.SKIP_AUTH === 'true';
 
 export const protect = (req, res, next) => {
   try {
