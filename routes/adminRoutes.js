@@ -4,6 +4,8 @@ import {
   getAllUsers,
   getUserById,
   updateUserRole,
+  getWorkerVerificationQueue,
+  getFacilityVerificationQueue,
   deleteUser,
   getAllWorkers,
   getWorkerById,
@@ -46,12 +48,14 @@ router.get('/workers', getAllWorkers);
 router.get('/workers/:workerId', getWorkerById);
 router.patch('/workers/:workerId/approve', approveWorker);
 router.patch('/workers/:workerId/reject', rejectWorker);
+router.get('/workers/verification-queue', getWorkerVerificationQueue);
 
 // Facility management
 router.get('/facilities', getAllFacilities);
 router.get('/facilities/:facilityId', getFacilityById);
 router.patch('/facilities/:facilityId/approve', approveFacility);
 router.patch('/facilities/:facilityId/reject', rejectFacility);
+router.get('/facilities/verification-queue', getFacilityVerificationQueue);
 
 // Shifts and Applications
 router.get('/shifts', getAllShifts);
