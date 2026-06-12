@@ -745,4 +745,45 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+// get verificattionqueue for workers
+export const getWorkerVerificationQueue = async (req, res) => {
+  try {
+    const pendingWorkers = await Worker.find({ 
+      verificationStatus: 'Pending',
+      role: 'worker',
+      certifications: { $exists: true, $not: { $size: 0 } }
+    }).select('-password');
 
+    return res.status(200).json({
+     success: true,
+     count: pendingWorkers.length,
+     data: pendingWorkers
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// get verification queue for facilities
+export const getFacilityVerificationQueue = async (req, res) => {
+  try {
+    const pendingFacilities = await Facility.find({ status: 'pending' })
+      .populate('createdBy', '-password');
+
+    return res.status(200).json({
+      success: true,
+      count: pendingFacilities.length,
+      data: pendingFacilities
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
