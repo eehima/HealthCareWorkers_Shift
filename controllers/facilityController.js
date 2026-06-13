@@ -201,7 +201,7 @@ export const uploadProfilePicture = async (req, res) => {
   }
 };
 
-// update worker certifications
+// update facility certifications
 export const updateCertifications = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -210,11 +210,11 @@ export const updateCertifications = async (req, res) => {
         message: "please upload a valid national document",
       });
     }
-    // loop through the files and upload each one to cloudinary, then get the urls and save them in the worker's certifications array
+    // loop through the files and upload each one to cloudinary, then get the urls and save them in the facility's certifications array
     const uploadPromises = req.files.map((file) =>
       streamUploadToCloudinary(file.buffer, "medhirely_certifications"),
     );
-    // wait for all uploads to finish and get the urls, then create an array of certification objects with the name and url, and push them to the worker's certifications array
+    // wait for all uploads to finish and get the urls, then create an array of certification objects with the name and url, and push them to the facility's certifications array
     const uploadedUrls = await Promise.all(uploadPromises);
     const newCertifications = uploadedUrls.map((url, index) => {
       return {
