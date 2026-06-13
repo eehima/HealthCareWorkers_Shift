@@ -1,5 +1,5 @@
 import express from "express";
-import { protect, authorize } from '../middleware/authMiddleware.js';
+import { protect, authorize } from "../middleware/authMiddleware.js";
 import {
   createFacility,
   getAllFacility,
@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 // Facility CRUD routes
-router.post("/", protect, authorize('facility'), createFacility);
+router.post("/", protect, authorize("facility"), createFacility);
 router.get("/", getAllFacility);
 router.get("/:id", getOneFacilityById);
 router.patch("/:id", updateOneFacilityById);
